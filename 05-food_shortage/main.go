@@ -8,10 +8,15 @@ import (
 
 func main() {
 	intPtr := flag.Int("part", 1, "Part")
+	testPtr := flag.Bool("test", false, "Test")
 
 	flag.Parse()
 
-	inputFile, err := os.Open("./input.txt")
+	file := "input.txt"
+	if *testPtr {
+		file = "test.txt"
+	}
+	inputFile, err := os.Open(file)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

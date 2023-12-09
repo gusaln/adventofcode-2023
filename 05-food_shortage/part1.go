@@ -16,7 +16,7 @@ func part1(raw io.Reader) int64 {
 	// We need to scan to get the first line
 	s.Scan()
 	seeds := parseSeeds(s.Text())
-	// fmt.Println("Seeds: ", seeds)
+	fmt.Println("Seeds: ", seeds)
 
 	// Ignore empty line
 	s.Scan()
@@ -40,7 +40,7 @@ func part1(raw io.Reader) int64 {
 				break
 			}
 
-			mapper.addMappingRange(rawRange)
+			mapper.addTransformation(rawRange)
 		}
 
 		for i := 0; i < len(seeds); i++ {
@@ -53,9 +53,10 @@ func part1(raw io.Reader) int64 {
 		}
 	}
 
-	// Doing extra work
+	fmt.Println("Locations: ", seeds)
+
 	var min int64 = seeds[0]
-	for _, l := range seeds {
+	for _, l := range seeds[0:] {
 		if l < min {
 			min = l
 		}
@@ -78,7 +79,7 @@ func parseSeeds(raw string) []int64 {
 	return seeds
 }
 
-type mappingRange struct {
+type transformation struct {
 	dstStart int64
 	dstEnd   int64
 	srcStart int64
@@ -86,14 +87,14 @@ type mappingRange struct {
 	delta    int64
 }
 
-func parseMappingRange(raw string) mappingRange {
+func parseTransformation(raw string) transformation {
 	parts := strings.Split(raw, " ")
 
 	dst, _ := strconv.ParseInt(parts[0], 10, 64)
 	src, _ := strconv.ParseInt(parts[1], 10, 64)
 	length, _ := strconv.ParseInt(parts[2], 10, 64)
 
-	return mappingRange{
+	return transformation{
 		srcStart: src,
 		dstStart: dst,
 		srcEnd:   src + length - 1,
@@ -102,15 +103,16 @@ func parseMappingRange(raw string) mappingRange {
 	}
 }
 
-func (r mappingRange) String() string {
-	return fmt.Sprintf("[%d, %d] -> [%d, %d]", r.srcStart, r.srcEnd, r.dstStart, r.dstEnd)
+func (r transformation) String() string {
+	// return fmt.Sprintf("<Mapping [%d, %d] -> [%d, %d]>", r.srcStart, r.srcEnd, r.dstStart, r.dstEnd)
+	return fmt.Sprintf("<Mapping [%d, %d] ; %+d>", r.srcStart, r.srcEnd, r.delta)
 }
 
-func (r mappingRange) contains(n int64) bool {
+func (r transformation) contains(n int64) bool {
 	return n >= r.srcStart && n <= r.srcEnd
 }
 
-func (r mappingRange) convert(n int64) int64 {
+func (r transformation) convert(n int64) int64 {
 	if r.contains(n) {
 		// fmt.Println("transf.", n, " , using:", r)
 
@@ -121,21 +123,21 @@ func (r mappingRange) convert(n int64) int64 {
 }
 
 type mapper struct {
-	ranges []mappingRange
+	transformations []transformation
 }
 
 func newMapper() mapper {
 	return mapper{
-		ranges: []mappingRange{},
+		transformations: []transformation{},
 	}
 }
 
-func (m *mapper) addMappingRange(raw string) {
-	m.ranges = append(m.ranges, parseMappingRange(raw))
+func (m *mapper) addTransformation(raw string) {
+	m.transformations = append(m.transformations, parseTransformation(raw))
 }
 
 func (m mapper) findRangeIndex(n int64) int {
-	for i, r := range m.ranges {
+	for i, r := range m.transformations {
 		if r.contains(n) {
 			return i
 		}
@@ -146,7 +148,7 @@ func (m mapper) findRangeIndex(n int64) int {
 
 func (m mapper) convert(n int64) int64 {
 	if i := m.findRangeIndex(n); i >= 0 {
-		return m.ranges[i].convert(n)
+		return m.transformations[i].convert(n)
 	}
 
 	return n
